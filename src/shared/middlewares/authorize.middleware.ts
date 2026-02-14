@@ -1,9 +1,11 @@
 import { NextFunction, Request, Response } from "express";
+import { Role } from "@prisma/client";
+
 import { auth } from "../../modules/auth/auth";
 
 export enum UserRole {
-    USER = "USER",
-    ADMIN = "ADMIN"
+  USER = "USER",
+  ADMIN = "ADMIN",
 }
 
 const authorize = (...roles: UserRole[]) => {
@@ -32,11 +34,16 @@ const authorize = (...roles: UserRole[]) => {
         id: session.user.id,
         email: session.user.email,
         name: session.user.name,
-        role: session.user.role as string,
-        emailVerified: session.user.emailVerified,
+        role: session.user.role as Role,
+        isEmailVerified: session.user.emailVerified,
+        isBlocked: (session.user as any).isBlocked ?? false,
       };
 
-      if (roles.length && !roles.includes(req.user.role as UserRole)) {
+      if (
+        roles.length &&
+        req.user &&
+        !roles.includes(req.user.role as unknown as UserRole)
+      ) {
         return res.status(403).json({
           success: false,
           message:

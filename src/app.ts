@@ -9,9 +9,12 @@ import { notFound } from "./shared/middlewares/not-found.middleware";
 import { auth } from "./modules/auth/auth";
 import { toNodeHandler } from "better-auth/node";
 
+import cookieParser from "cookie-parser";
+
 // app initialization
 const app: Application = express();
 app.use(express.json());
+app.use(cookieParser());
 
 app.use(helmet);
 app.use(logger);

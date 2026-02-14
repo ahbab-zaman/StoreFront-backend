@@ -6,70 +6,119 @@ datasource db {
     provider = "postgresql"
 }
 
-model User {
-    id            String    @id @default(cuid())
-    name          String
-    email         String
-    emailVerified Boolean   @default(false)
-    image         String?
-    createdAt     DateTime  @default(now())
-    updatedAt     DateTime  @updatedAt
-    sessions      Session[]
-    accounts      Account[]
-    role          Role    @default(USER)
-
-    @@unique([email])
-    @@map("user")
-}
-
-model Session {
-    id        String   @id @default(cuid())
-    expiresAt DateTime
-    token     String   @unique
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    ipAddress String?
-    userAgent String?
-    userId    String   
-    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-    @@index([userId])
-    @@map("session")
-}
-
-model Account {
-    id                    String    @id @default(cuid())
-    accountId             String
-    providerId            String
-    userId                String    
-    user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-    accessToken           String?
-    refreshToken          String?
-    idToken               String?
-    accessTokenExpiresAt  DateTime?
-    refreshTokenExpiresAt DateTime?
-    scope                 String?
-    password              String?
-    createdAt             DateTime  @default(now())
-    updatedAt             DateTime  @updatedAt
-
-    @@index([userId])
-    @@map("account")
-}
-
-model Verification {
-    id         String   @id @default(cuid())
-    identifier String
-    value      String
-    expiresAt  DateTime
-    createdAt  DateTime @default(now())
-    updatedAt  DateTime @updatedAt
-
-    @@index([identifier])
-    @@map("verification")
-}
-
+// User Role Enum
 enum Role {
-    USER
-    ADMIN
+  ADMIN
+  SELLER
+  CUSTOMER
+}
+
+// Auth Provider Enum
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
+// OTP Type Enum
+enum OtpType {
+  VERIFY_EMAIL
+  LOGIN
+  RESET_PASSWORD
+}
+
+// User Model
+model User {
+  id                  String       @id @default(uuid())
+  name                String
+  email               String       @unique
+  phone               String?
+  password            String?      // Nullable for Google users
+  role                Role         @default(CUSTOMER)
+  
+  // Auth & Security
+  isEmailVerified     Boolean      @default(false)
+  isBlocked           Boolean      @default(false)
+  failedLoginAttempts Int          @default(0)
+  lockUntil           DateTime?
+  
+  // Profile
+  avatar              String?
+  provider            AuthProvider @default(LOCAL)
+  providerId          String?
+  
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  // Relations
+  sessions            Session[]
+  accounts            Account[]    // Kept for flexibility/Better Auth default
+  
+  @@map("user")
+}
+
+// Session Model (Custom + Better Auth compatible)
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Security
+  refreshToken String   // Hashed
+  userAgent    String?
+  ipAddress    String?
+  isRevoked    Boolean  @default(false)
+  
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Better Auth specific (optional but check docs if needed, keeping simple for custom logic first)
+  token        String   @unique // Session Token (if using db sessions)
+  
+  @@map("session")
+}
+
+// OTP Model
+model OTP {
+  id        String   @id @default(uuid())
+  email     String
+  code      String   // Hashed
+  type      OtpType
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@map("otp")
+}
+
+// Account Model (Better Auth / OAuth support)
+model Account {
+  id                    String    @id @default(uuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+// Verification Model (Better Auth default)
+model Verification {
+  id         String   @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@map("verification")
 }
