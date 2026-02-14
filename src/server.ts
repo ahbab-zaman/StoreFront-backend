@@ -2,10 +2,12 @@ import app from "./app";
 import { env } from "./config/env";
 import { setupAuth } from "./modules/auth/auth";
 
+import { checkDatabaseConnection } from "./database/checkConnection";
+
 async function startServer() {
-  
-await setupAuth();
-const port = env.port;
+  await setupAuth();
+  await checkDatabaseConnection();
+  const port = env.port;
   app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
   });
