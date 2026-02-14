@@ -60,6 +60,30 @@ export class AuthService {
     await sendOTPEmail(email, otp);
   }
 
+  async resendOTP(email: string, type: string) {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (user.isBlocked) {
+      throw new Error("Account is blocked");
+    }
+
+    // Invalidate previous OTPs
+    await (prisma as any).oTP.updateMany({
+      where: { email, type: type as OtpType, isUsed: false },
+      data: { isUsed: true },
+    });
+
+    await this.sendOTP(email, type);
+
+    return { message: "OTP sent successfully" };
+  }
+
   async verifyOTP(email: string, otp: string, type: string) {
     const otpRecord = await (prisma as any).oTP.findFirst({
       where: {
@@ -140,7 +164,25 @@ export class AuthService {
     });
 
     if (!user.isEmailVerified) {
-      throw new Error("Email not verified");
+      await this.sendOTP(user.email, "VERIFY_EMAIL");
+      throw new Error(
+        "Please verify your email address before logging in. A new verification OTP has been sent to your email.",
+      );
+    }
+
+    // Check for existing active session
+    const activeSession = await prisma.session.findFirst({
+      where: {
+        userId: user.id,
+        isRevoked: false,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (activeSession) {
+      throw new Error(
+        "User is already logged in. Please logout from other devices first.",
+      );
     }
 
     const accessToken = generateAccessToken({
@@ -149,6 +191,7 @@ export class AuthService {
       email: user.email,
     });
     const refreshToken = generateRefreshToken();
+    const sessionToken = generateRefreshToken();
     const hashedRefreshToken = hashToken(refreshToken); // SHA256
 
     await prisma.session.create({
@@ -158,13 +201,14 @@ export class AuthService {
         userAgent: data.userAgent,
         ipAddress: data.ipAddress,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        token: generateRefreshToken(),
+        token: sessionToken,
       },
     });
 
     return {
       accessToken,
       refreshToken,
+      sessionToken,
       user: { id: user.id, name: user.name, role: user.role },
     };
   }

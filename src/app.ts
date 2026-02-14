@@ -14,6 +14,30 @@ import cookieParser from "cookie-parser";
 // app initialization
 const app: Application = express();
 app.use(express.json());
+
+// Debug middleware for API routes
+// Middleware to enforce JSON content-type for API requests
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api") && req.method === "POST") {
+    const contentType = req.headers["content-type"];
+    const contentLength = req.headers["content-length"];
+
+    // Skip check if body is empty
+    if (!contentLength || contentLength === "0") {
+      return next();
+    }
+
+    if (!contentType || !contentType.includes("application/json")) {
+      return res.status(400).json({
+        error: "Invalid Content-Type",
+        message:
+          "Please ensure you are sending 'application/json'. Check your client headers.",
+      });
+    }
+  }
+  next();
+});
+
 app.use(cookieParser());
 
 app.use(helmet);

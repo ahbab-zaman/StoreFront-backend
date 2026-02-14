@@ -7,6 +7,7 @@ const authController = new AuthController();
 
 router.post("/register", authLimiter, authController.register);
 router.post("/verify-otp", authController.verifyOTP);
+router.post("/resend-otp", authLimiter, authController.resendOTP);
 router.post("/login", authLimiter, authController.login);
 router.post("/refresh", authController.refreshToken);
 router.post("/logout", authController.logout);

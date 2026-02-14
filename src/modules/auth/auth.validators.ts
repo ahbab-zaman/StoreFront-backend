@@ -19,6 +19,13 @@ export const otpSchema = z.object({
   type: z.enum(["VERIFY_EMAIL", "LOGIN", "RESET_PASSWORD"]),
 });
 
+export const resendOtpSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  type: z
+    .enum(["VERIFY_EMAIL", "LOGIN", "RESET_PASSWORD"])
+    .default("VERIFY_EMAIL"),
+});
+
 export const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, "Refresh token is required"),
 });
