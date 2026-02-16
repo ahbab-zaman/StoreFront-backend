@@ -1,0 +1,19 @@
+// User Role Enum
+enum Role {
+  ADMIN
+  SELLER
+  CUSTOMER
+}
+
+// Auth Provider Enum
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
+// OTP Type Enum
+enum OtpType {
+  VERIFY_EMAIL
+  LOGIN
+  RESET_PASSWORD
+}

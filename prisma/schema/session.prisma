@@ -1,0 +1,21 @@
+// Session Model (Custom + Better Auth compatible)
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Security
+  refreshToken String   // Hashed
+  userAgent    String?
+  ipAddress    String?
+  isRevoked    Boolean  @default(false)
+  
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Better Auth specific (optional but check docs if needed, keeping simple for custom logic first)
+  token        String   @unique // Session Token (if using db sessions)
+  
+  @@map("session")
+}
