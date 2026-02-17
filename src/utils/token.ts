@@ -6,10 +6,25 @@ export const generateAccessToken = (payload: object): string => {
   return jwt.sign(payload, env.jwtSecret, { expiresIn: "15m" });
 };
 
-export const verifyAccessToken = (token: string): any => {
+export type AccessTokenPayload = jwt.JwtPayload & {
+  userId: string;
+  role: string;
+  email: string;
+};
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+export const verifyAccessToken = (token: string): AccessTokenPayload | null => {
   try {
-    return jwt.verify(token, env.jwtSecret);
-  } catch (error) {
+    const decoded = jwt.verify(token, env.jwtSecret);
+    if (!isObject(decoded)) return null;
+    if (typeof decoded["userId"] !== "string") return null;
+    if (typeof decoded["role"] !== "string") return null;
+    if (typeof decoded["email"] !== "string") return null;
+    return decoded as AccessTokenPayload;
+  } catch {
     return null;
   }
 };

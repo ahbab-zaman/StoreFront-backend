@@ -4,7 +4,6 @@ export const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(["CUSTOMER", "SELLER"]).default("CUSTOMER"),
   phone: z.string().optional(),
 });
 
@@ -26,6 +25,8 @@ export const resendOtpSchema = z.object({
     .default("VERIFY_EMAIL"),
 });
 
-export const refreshTokenSchema = z.object({
-  refreshToken: z.string().min(1, "Refresh token is required"),
-});
+/**
+ * Refresh token flow is cookie-based:
+ * - Client sends httpOnly `refreshToken` cookie to `/refresh`
+ * - Server rotates and re-sets cookies (no token in request body)
+ */

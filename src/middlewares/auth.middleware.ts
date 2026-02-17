@@ -50,7 +50,7 @@ export const authenticate = async (
     };
 
     next();
-  } catch (error) {
+  } catch {
     return res.status(401).json({ error: "Unauthorized" });
   }
 };

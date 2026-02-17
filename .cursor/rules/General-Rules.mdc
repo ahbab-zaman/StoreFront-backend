@@ -1,0 +1,70 @@
+---
+alwaysApply: true
+---
+
+# PRODUCTION BACKEND GOVERNANCE PACKAGE
+Multi-Vendor Grocery Marketplace Backend
+Stack: Express + TypeScript (strict) + Prisma + PostgreSQL + Better Auth + JWT + Nodemailer
+
+====================================================================
+1️⃣ GLOBAL ENGINEERING RULES
+====================================================================
+
+This is a production-grade multi-vendor e-commerce backend.
+
+Stack:
+- Express
+- TypeScript (strict mode)
+- Prisma ORM
+- PostgreSQL
+- Better Auth
+- JWT (Access + Refresh Token)
+- Nodemailer (OTP)
+
+General Rules:
+1. Follow modular monolith architecture.
+2. Each feature must be implemented inside its own module folder.
+3. Controllers must not contain business logic.
+4. Business logic must live inside services.
+5. Prisma queries must be written inside repository layer only.
+6. Validate all request bodies using Zod.
+7. Never use `any` type.
+8. Never trust frontend data.
+9. Always calculate money on backend.
+10. All protected routes must use authentication middleware.
+11. Role-based authorization must be enforced.
+12. Use database transactions for multi-step operations (orders, payments, wallet updates).
+13. Hash passwords, OTPs, and refresh tokens before storing.
+14. Never return sensitive fields (password, tokens, secrets).
+15. Use centralized error handling.
+16. All list APIs must implement pagination.
+17. All responses must follow consistent API response format.
+
+Authentication Rules:
+- Access token: 15 min expiry
+- Refresh token: 7 days expiry
+- Refresh tokens must be rotated
+- Sessions must be stored in database
+- Revoke sessions on logout or password change
+
+Order Rules:
+- Order lifecycle must follow strict status transitions.
+- Stock must be validated before checkout.
+- Store must be validated as open.
+- Delivery radius must be validated.
+- Commission calculated server-side.
+
+Security Rules:
+- Use Helmet
+- Use CORS whitelist
+- Rate limit login & OTP routes
+- Lock account after 5 failed attempts
+- Validate environment variables at startup
+
+Code Quality:
+- Strict TypeScript
+- No duplicate logic
+- No magic numbers
+- Clean naming convention
+- Reusable utilities
+- Clean folder structure

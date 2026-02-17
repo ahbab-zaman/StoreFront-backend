@@ -1,0 +1,55 @@
+You are building a real-world, production-grade multi-vendor grocery marketplace backend.
+
+This system must follow enterprise-level backend engineering standards.
+
+Architecture:
+- Modular monolith
+- Clear separation: controller, service, repository
+- No business logic inside controllers
+- Versioned API (/api/v1)
+
+Authentication:
+- Access + Refresh token system
+- Refresh token rotation
+- Session stored in DB
+- OTP verification via email
+- Google OAuth via Better Auth
+- Role-based access control (ADMIN, SELLER, CUSTOMER)
+
+Security:
+- Hash sensitive data
+- Rate limit sensitive endpoints
+- Lock account after failed attempts
+- Validate all input with Zod
+- Never trust client role
+- Centralized error handler
+
+Database:
+- Use Prisma ORM only
+- Use transactions for financial operations
+- Index important columns
+- Soft delete where needed
+
+Marketplace Rules:
+- Cart must support single-store products only
+- Validate stock on checkout
+- Validate delivery radius
+- Commission applied after delivery
+- Payment must be verified via webhook
+
+API Rules:
+- Standard response format:
+  {
+    success: boolean,
+    message: string,
+    data?: any,
+    error?: any
+  }
+
+Performance:
+- Pagination mandatory
+- Avoid N+1 queries
+- Use select to minimize data load
+
+Never compromise production standards.
+Write code as if this system will handle 1 million users.

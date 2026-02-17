@@ -29,15 +29,7 @@ async function run() {
     // 2. Fetch OTP from DB
     console.log("\n2️⃣  Fetching OTP from DB...");
 
-    // Cast prisma to any to access oTP (runtime verified property)
-    const otpClient = (prisma as any).oTP;
-
-    if (!otpClient) {
-      console.error("Available prisma keys:", Object.keys(prisma));
-      throw new Error("Could not find otp/oTP property on prisma client");
-    }
-
-    const otpRecord = await otpClient.findFirst({
+    const otpRecord = await prisma.oTP.findFirst({
       where: { email: EMAIL, type: "VERIFY_EMAIL", isUsed: false },
       orderBy: { createdAt: "desc" },
     });
@@ -118,7 +110,7 @@ async function run() {
     // Cleanup
     try {
       await prisma.user.deleteMany({ where: { email: EMAIL } });
-      await (prisma as any).oTP.deleteMany({ where: { email: EMAIL } });
+      await prisma.oTP.deleteMany({ where: { email: EMAIL } });
     } catch (e) {
       console.error("Cleanup failed", e);
     }

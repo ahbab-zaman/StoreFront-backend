@@ -1,4 +1,3 @@
-import { prisma } from "../../database/prisma";
 import { hashValue, compareValue, hashToken } from "../../utils/hash";
 import {
   generateAccessToken,
@@ -7,63 +6,55 @@ import {
 } from "../../utils/token";
 import { sendOTPEmail } from "../../utils/email";
 import { Role, OtpType } from "@prisma/client";
+import { authRepository } from "./auth.repository";
 
 export class AuthService {
   async register(data: {
     name: string;
     email: string;
     password: string;
-    role: Role;
+    role?: Role;
     phone?: string;
   }) {
-    const existingUser = await prisma.user.findUnique({
-      where: { email: data.email },
-    });
+    const existingUser = await authRepository.findUserByEmail(data.email);
     if (existingUser) {
       throw new Error("User already exists");
     }
 
     const hashedPassword = await hashValue(data.password);
 
-    const user = await prisma.user.create({
-      data: {
-        name: data.name,
-        email: data.email,
-        password: hashedPassword,
-        role: data.role,
-        phone: data.phone,
-        provider: "LOCAL",
-      },
+    const user = await authRepository.createUser({
+      name: data.name,
+      email: data.email,
+      password: hashedPassword,
+      role: data.role ?? Role.CUSTOMER,
+      phone: data.phone,
     });
 
-    await this.sendOTP(user.email, "VERIFY_EMAIL");
+    await this.sendOTP(user.email, OtpType.VERIFY_EMAIL);
 
     return {
       message: "User registered successfully. Please check your email for OTP.",
     };
   }
 
-  async sendOTP(email: string, type: string) {
+  async sendOTP(email: string, type: OtpType) {
     const otp = generateOTP();
     const hashedOTP = await hashValue(otp);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    await (prisma as any).oTP.create({
-      data: {
-        email,
-        code: hashedOTP,
-        type: type as OtpType,
-        expiresAt,
-      },
+    await authRepository.createOtp({
+      email,
+      code: hashedOTP,
+      type,
+      expiresAt,
     });
 
     await sendOTPEmail(email, otp);
   }
 
-  async resendOTP(email: string, type: string) {
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+  async resendOTP(email: string, type: OtpType) {
+    const user = await authRepository.findUserByEmail(email);
 
     if (!user) {
       throw new Error("User not found");
@@ -74,26 +65,15 @@ export class AuthService {
     }
 
     // Invalidate previous OTPs
-    await (prisma as any).oTP.updateMany({
-      where: { email, type: type as OtpType, isUsed: false },
-      data: { isUsed: true },
-    });
+    await authRepository.invalidateOtps(email, type);
 
     await this.sendOTP(email, type);
 
     return { message: "OTP sent successfully" };
   }
 
-  async verifyOTP(email: string, otp: string, type: string) {
-    const otpRecord = await (prisma as any).oTP.findFirst({
-      where: {
-        email,
-        type: type as OtpType,
-        isUsed: false,
-        expiresAt: { gt: new Date() },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+  async verifyOTP(email: string, otp: string, type: OtpType) {
+    const otpRecord = await authRepository.findLatestValidOtp(email, type);
 
     if (!otpRecord) {
       throw new Error("Invalid or expired OTP");
@@ -104,16 +84,10 @@ export class AuthService {
       throw new Error("Invalid or expired OTP");
     }
 
-    await (prisma as any).oTP.update({
-      where: { id: otpRecord.id },
-      data: { isUsed: true },
-    });
+    await authRepository.markOtpAsUsed(otpRecord.id);
 
-    if (type === "VERIFY_EMAIL") {
-      await prisma.user.update({
-        where: { email },
-        data: { isEmailVerified: true },
-      });
+    if (type === OtpType.VERIFY_EMAIL) {
+      await authRepository.updateUserByEmail(email, { isEmailVerified: true });
     }
 
     return { message: "OTP verified successfully" };
@@ -125,9 +99,7 @@ export class AuthService {
     userAgent?: string;
     ipAddress?: string;
   }) {
-    const user = await prisma.user.findUnique({
-      where: { email: data.email },
-    });
+    const user = await authRepository.findUserByEmail(data.email);
 
     if (!user || !user.password) {
       throw new Error("Invalid credentials");
@@ -150,34 +122,28 @@ export class AuthService {
         lockUntil = new Date(Date.now() + 15 * 60 * 1000);
       }
 
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { failedLoginAttempts: attempts, lockUntil } as any,
+      await authRepository.updateUserById(user.id, {
+        failedLoginAttempts: attempts,
+        lockUntil,
       });
 
       throw new Error("Invalid credentials");
     }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { failedLoginAttempts: 0, lockUntil: null } as any,
+    await authRepository.updateUserById(user.id, {
+      failedLoginAttempts: 0,
+      lockUntil: null,
     });
 
     if (!user.isEmailVerified) {
-      await this.sendOTP(user.email, "VERIFY_EMAIL");
+      await this.sendOTP(user.email, OtpType.VERIFY_EMAIL);
       throw new Error(
         "Please verify your email address before logging in. A new verification OTP has been sent to your email.",
       );
     }
 
     // Check for existing active session
-    const activeSession = await prisma.session.findFirst({
-      where: {
-        userId: user.id,
-        isRevoked: false,
-        expiresAt: { gt: new Date() },
-      },
-    });
+    const activeSession = await authRepository.findActiveSessionByUserId(user.id);
 
     if (activeSession) {
       throw new Error(
@@ -191,24 +157,22 @@ export class AuthService {
       email: user.email,
     });
     const refreshToken = generateRefreshToken();
+    // Internal session token for DB uniqueness/tracking (not exposed to clients)
     const sessionToken = generateRefreshToken();
     const hashedRefreshToken = hashToken(refreshToken); // SHA256
 
-    await prisma.session.create({
-      data: {
-        userId: user.id,
-        refreshToken: hashedRefreshToken,
-        userAgent: data.userAgent,
-        ipAddress: data.ipAddress,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        token: sessionToken,
-      },
+    await authRepository.createSession({
+      userId: user.id,
+      refreshToken: hashedRefreshToken,
+      userAgent: data.userAgent,
+      ipAddress: data.ipAddress,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      token: sessionToken,
     });
 
     return {
       accessToken,
       refreshToken,
-      sessionToken,
       user: { id: user.id, name: user.name, role: user.role },
     };
   }
@@ -216,14 +180,8 @@ export class AuthService {
   async refreshToken(refreshToken: string) {
     const hashedRefreshToken = hashToken(refreshToken);
 
-    const session = await prisma.session.findFirst({
-      where: {
-        refreshToken: hashedRefreshToken,
-        isRevoked: false,
-        expiresAt: { gt: new Date() },
-      },
-      include: { user: true },
-    });
+    const session =
+      await authRepository.findSessionByHashedRefreshToken(hashedRefreshToken);
 
     if (!session) {
       throw new Error("Invalid or expired refresh token");
@@ -238,12 +196,9 @@ export class AuthService {
     const newRefreshToken = generateRefreshToken();
     const newHashedRefreshToken = hashToken(newRefreshToken);
 
-    await prisma.session.update({
-      where: { id: session.id },
-      data: {
-        refreshToken: newHashedRefreshToken, // Rotation
-        updatedAt: new Date(),
-      },
+    await authRepository.updateSessionById(session.id, {
+      refreshToken: newHashedRefreshToken, // Rotation
+      updatedAt: new Date(),
     });
 
     return { accessToken, refreshToken: newRefreshToken };
@@ -252,10 +207,7 @@ export class AuthService {
   async logout(refreshToken: string) {
     const hashedRefreshToken = hashToken(refreshToken);
 
-    await prisma.session.updateMany({
-      where: { refreshToken: hashedRefreshToken },
-      data: { isRevoked: true },
-    });
+    await authRepository.revokeSessionsByHashedRefreshToken(hashedRefreshToken);
 
     return { message: "Logged out successfully" };
   }
