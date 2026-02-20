@@ -13,12 +13,26 @@ import cookieParser from "cookie-parser";
 
 // app initialization
 const app: Application = express();
+
+// ⚠️ IMPORTANT: Better Auth handler MUST be registered BEFORE express.json()
+// because express.json() consumes the raw body stream, making it unavailable
+// for toNodeHandler which needs to read the body itself.
+app.all("/api/auth/*splat", (req: Request, res: Response) => {
+  if (!auth) {
+    return res.status(503).json({ success: false, message: "Auth not ready" });
+  }
+  return toNodeHandler(auth)(req, res);
+});
+
 app.use(express.json());
 
-// Debug middleware for API routes
 // Middleware to enforce JSON content-type for API requests
 app.use((req, res, next) => {
-  if (req.path.startsWith("/api") && req.method === "POST") {
+  if (
+    req.path.startsWith("/api") &&
+    !req.path.startsWith("/api/auth") &&
+    req.method === "POST"
+  ) {
     const contentType = req.headers["content-type"];
     const contentLength = req.headers["content-length"];
 
@@ -62,12 +76,6 @@ app.get("/", (_req: Request, res: Response) => {
 });
 
 // API routes
-app.all("/api/auth/*splat", (req: Request, res: Response) => {
-  if (!auth) {
-    return res.status(503).json({ success: false, message: "Auth not ready" });
-  }
-  return toNodeHandler(auth)(req, res);
-});
 app.use("/api", apiRoutes);
 
 // unhandled routes

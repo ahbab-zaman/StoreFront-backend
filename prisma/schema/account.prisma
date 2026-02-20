@@ -5,6 +5,7 @@ model Account {
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accountId             String
   providerId            String
+  idToken               String?
   accessToken           String?
   refreshToken          String?
   accessTokenExpiresAt  DateTime?

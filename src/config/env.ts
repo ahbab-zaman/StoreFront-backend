@@ -6,7 +6,9 @@ dotenv.config({ path: path.join(process.cwd(), ".env") });
 
 const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(8000),
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  NODE_ENV: z
+    .enum(["development", "test", "production"])
+    .default("development"),
 
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
 
@@ -19,9 +21,10 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.string().url("BETTER_AUTH_URL must be a valid URL"),
   APP_URL: z.string().url("APP_URL must be a valid URL"),
 
-  // Google OAuth (optional depending on deployment)
+  // Google OAuth (required when Google login is enabled)
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_REDIRECT_URI: z.string().url().optional(),
 
   // Email (required in production)
   EMAIL_HOST: z.string().optional(),
@@ -75,8 +78,9 @@ const env = {
   appUrl: parsed.data.APP_URL,
 
   // Google OAuth
-  googleClientId: parsed.data.GOOGLE_CLIENT_ID,
-  googleClientSecret: parsed.data.GOOGLE_CLIENT_SECRET,
+  googleClientId: parsed.data.GOOGLE_CLIENT_ID ?? "",
+  googleClientSecret: parsed.data.GOOGLE_CLIENT_SECRET ?? "",
+  googleRedirectUri: parsed.data.GOOGLE_REDIRECT_URI ?? "",
 
   corsOrigin: parsed.data.CORS_ORIGIN,
 

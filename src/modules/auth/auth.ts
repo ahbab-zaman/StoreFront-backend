@@ -6,80 +6,90 @@ import {
 } from "../../shared/email/email-templates";
 import { prisma } from "../../database/prisma";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { env } from "../../config/env";
 
 export async function initAuth() {
+  return betterAuth({
+    database: prismaAdapter(prisma, {
+      provider: "postgresql",
+    }),
 
-return betterAuth({
-  database: prismaAdapter(prisma, {
-    provider: "postgresql",
-  }),
-
-  baseURL: process.env.BETTER_AUTH_URL,
-  secret: process.env.BETTER_AUTH_SECRET,
-  trustedOrigins: [process.env.APP_URL!],
-  user: {
-    additionalFields: {
-      role: {
-        type: "string",
-        defaultValue: "USER",
-        required: true,
+    baseURL: env.betterAuthUrl,
+    secret: env.betterAuthSecret,
+    trustedOrigins: [env.appUrl],
+    user: {
+      fields: {
+        emailVerified: "isEmailVerified",
+        image: "avatar",
+      },
+      additionalFields: {
+        role: {
+          type: "string",
+          defaultValue: "CUSTOMER",
+          required: true,
+        },
       },
     },
-  },
-  emailAndPassword: {
-    enabled: true,
-    requireEmailVerification: true,
-    sendResetPassword: async ({ user, url }) => {
-    const { html, text } = getPasswordResetEmailTemplate(user, url);
-      await sendEmail({
-        to: user.email,
-        subject: "Reset Your Password",
-        text,
-        html,
-      });
-    },
-  },
-  socialProviders: {
-    google: {
-      accessType: "offline", 
-      prompt: "select_account consent",
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    },
-  },
-  emailVerification: {
-    sendVerificationEmail: async ({ user, url }) => {
-      const { html, text } = getVerificationEmailTemplate(user, url);
-      await sendEmail({
-        to: user.email,
-        subject: "Verify Your Email Address",
-        text,
-        html,
-      });
-    },
-    sendOnSignIn: true,
-  },
-  rateLimit: {
-    window: 10,
-    max: 100,
-  },
-  account: {
-    accountLinking: {
+    emailAndPassword: {
       enabled: true,
-      trustedProviders: ["google"],
+      requireEmailVerification: true,
+      sendResetPassword: async ({ user, url }) => {
+        const { html, text } = getPasswordResetEmailTemplate(user, url);
+        await sendEmail({
+          to: user.email,
+          subject: "Reset Your Password",
+          text,
+          html,
+        });
+      },
     },
-  },
-  session: {
-    cookieCache: {
-      enabled: true,
-      maxAge: 60 * 60 * 24 * 7,
+    socialProviders: {
+      google: {
+        accessType: "offline",
+        prompt: "select_account consent",
+        clientId: env.googleClientId,
+        clientSecret: env.googleClientSecret,
+      },
     },
-    expiresIn: 60 * 60 * 24 * 7,
-    updateAge: 60 * 60 * 24,
-    cookieName: "better-auth.session_token",
-  }
- })
-};
+    emailVerification: {
+      sendVerificationEmail: async ({ user, url }) => {
+        const { html, text } = getVerificationEmailTemplate(user, url);
+        await sendEmail({
+          to: user.email,
+          subject: "Verify Your Email Address",
+          text,
+          html,
+        });
+      },
+      sendOnSignIn: true,
+      autoSignInAfterVerification: true,
+    },
+    rateLimit: {
+      window: 10,
+      max: 100,
+    },
+    account: {
+      accountLinking: {
+        enabled: true,
+        trustedProviders: ["google"],
+        // Automatically link accounts if the email is verified
+        autoLinkWithEmail: true,
+      },
+    },
+    session: {
+      cookieCache: {
+        enabled: true,
+        maxAge: 60 * 60 * 24 * 7,
+      },
+      expiresIn: 60 * 60 * 24 * 7,
+      updateAge: 60 * 60 * 24,
+      cookieName: "better-auth.session_token",
+    },
+    advanced: {
+      useSecureCookies: env.isProduction,
+    },
+  });
+}
 
 export let auth: any = undefined;
 
