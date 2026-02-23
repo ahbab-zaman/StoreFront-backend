@@ -25,15 +25,19 @@ app.all("/api/auth/*splat", (req: Request, res: Response) => {
 });
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static("uploads"));
 
 // Middleware to enforce JSON content-type for API requests
 app.use((req, res, next) => {
+  const contentType = req.headers["content-type"];
+
   if (
     req.path.startsWith("/api") &&
     !req.path.startsWith("/api/auth") &&
-    req.method === "POST"
+    req.method === "POST" &&
+    !contentType?.includes("multipart/form-data") // Bypass for file uploads
   ) {
-    const contentType = req.headers["content-type"];
     const contentLength = req.headers["content-length"];
 
     // Skip check if body is empty

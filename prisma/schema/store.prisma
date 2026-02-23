@@ -1,0 +1,39 @@
+// Store Model
+model Store {
+  id               String      @id @default(uuid())
+  name             String
+  slug             String      @unique
+  description      String?
+  logo             String?
+  banner           String?
+
+  // Owner — @unique enforces one store per seller at DB level
+  sellerId         String      @unique
+  seller           User        @relation(fields: [sellerId], references: [id])
+
+  // Status & Visibility
+  status           StoreStatus @default(PENDING)
+  isOpen           Boolean     @default(false)
+
+  // Operational
+  deliveryRadiusKm Float
+  minimumOrder     Float
+
+  // Location
+  address          String
+  latitude         Float
+  longitude        Float
+
+  // Business Hours
+  openingTime      String // HH:mm
+  closingTime      String // HH:mm
+
+  // Timestamps
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  deletedAt        DateTime?   // Soft delete — never hard delete
+
+  @@index([sellerId])
+  @@index([status])
+  @@map("store")
+}

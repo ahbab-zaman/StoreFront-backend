@@ -17,3 +17,11 @@ enum OtpType {
   LOGIN
   RESET_PASSWORD
 }
+
+// Store Status Enum
+enum StoreStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+  REJECTED
+}

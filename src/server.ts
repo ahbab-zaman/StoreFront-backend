@@ -13,6 +13,18 @@ async function startServer() {
     await setupAuth();
     await checkDatabaseConnection();
 
+    // ─── Seed Database ────────────────────────────────────────────────────────
+    // This ensures seed users (ADMIN, SELLER) exist in the database on startup.
+    try {
+      const { runSeeder } = await import("../prisma/seed");
+      await runSeeder();
+    } catch (seedErr) {
+      console.warn(
+        "⚠️ Database seeding encountered an issue:",
+        seedErr instanceof Error ? seedErr.message : seedErr,
+      );
+    }
+
     app.listen(env.port, () => {
       console.log(`Server is running on http://localhost:${env.port}`);
     });
