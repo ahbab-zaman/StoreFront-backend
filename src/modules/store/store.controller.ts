@@ -6,6 +6,7 @@ import {
   updateStoreSchema,
   storeListQuerySchema,
 } from "./store.validator";
+import { deleteFiles } from "../../shared/utils/file.util";
 
 const storeService = new StoreService();
 
@@ -34,6 +35,17 @@ export class StoreController {
         data: store,
       });
     } catch (err) {
+      // Cleanup uploaded files on error
+      if (req.files) {
+        const files = req.files as {
+          [fieldname: string]: Express.Multer.File[];
+        };
+        const filesToDelete = [
+          ...(files["logo"] || []),
+          ...(files["banner"] || []),
+        ];
+        deleteFiles(filesToDelete);
+      }
       return next(err);
     }
   }
@@ -60,6 +72,17 @@ export class StoreController {
       const store = await storeService.updateStore(storeId, req.user!.id, dto);
       return success(res, store, "Store updated successfully");
     } catch (err) {
+      // Cleanup uploaded files on error
+      if (req.files) {
+        const files = req.files as {
+          [fieldname: string]: Express.Multer.File[];
+        };
+        const filesToDelete = [
+          ...(files["logo"] || []),
+          ...(files["banner"] || []),
+        ];
+        deleteFiles(filesToDelete);
+      }
       return next(err);
     }
   }
@@ -67,8 +90,8 @@ export class StoreController {
   // ── GET /stores/me ────────────────────────────────────────────────────────
   async getMyStore(req: Request, res: Response, next: NextFunction) {
     try {
-      const store = await storeService.getMyStore(req.user!.id);
-      return success(res, store, "Store retrieved successfully");
+      const stores = await storeService.getMyStores(req.user!.id);
+      return success(res, stores, "Stores retrieved successfully");
     } catch (err) {
       return next(err);
     }

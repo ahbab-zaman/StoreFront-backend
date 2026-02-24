@@ -7,8 +7,8 @@ model Store {
   logo             String?
   banner           String?
 
-  // Owner — @unique enforces one store per seller at DB level
-  sellerId         String      @unique
+  // Owner
+  sellerId         String
   seller           User        @relation(fields: [sellerId], references: [id])
 
   // Status & Visibility

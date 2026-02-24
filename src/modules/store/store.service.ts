@@ -41,11 +41,8 @@ async function generateUniqueSlug(name: string): Promise<string> {
 export class StoreService {
   // ── 1. Create Store (SELLER only) ─────────────────────────────────────────
   async createStore(sellerId: string, dto: CreateStoreDTO) {
-    // Business rule: one store per seller
-    const existing = await storeRepository.findBySellerId(sellerId);
-    if (existing) {
-      throw new ApiError(409, "You already have a store");
-    }
+    // Business rule: Multiple stores allowed per seller
+    // (Removed one-store-per-seller check)
 
     const slug = await generateUniqueSlug(dto.name);
 
@@ -81,12 +78,9 @@ export class StoreService {
   }
 
   // ── 3. Get Own Store (SELLER) ──────────────────────────────────────────────
-  async getMyStore(sellerId: string) {
-    const store = await storeRepository.findBySellerId(sellerId);
-    if (!store) {
-      throw new ApiError(404, "You do not have a store yet");
-    }
-    return store;
+  async getMyStores(sellerId: string) {
+    const stores = await storeRepository.findAllBySellerId(sellerId);
+    return stores;
   }
 
   // ── 4. Get Public Stores (CUSTOMER / public) ───────────────────────────────

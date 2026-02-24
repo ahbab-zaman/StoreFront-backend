@@ -69,10 +69,11 @@ export class StoreRepository {
     });
   }
 
-  findBySellerId(sellerId: string) {
-    return prisma.store.findUnique({
-      where: { sellerId },
+  findAllBySellerId(sellerId: string) {
+    return prisma.store.findMany({
+      where: { sellerId, deletedAt: null },
       select: storeFullSelect,
+      orderBy: { createdAt: "desc" },
     });
   }
 
