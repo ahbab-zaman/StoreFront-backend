@@ -142,14 +142,7 @@ export class AuthService {
       );
     }
 
-    // Check for existing active session
-    const activeSession = await authRepository.findActiveSessionByUserId(user.id);
-
-    if (activeSession) {
-      throw new Error(
-        "User is already logged in. Please logout from other devices first.",
-      );
-    }
+    // Allowed multiple sessions: Removed the active session check
 
     const accessToken = generateAccessToken({
       userId: user.id,

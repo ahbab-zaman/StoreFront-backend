@@ -2,11 +2,11 @@
 model OTP {
   id        String   @id @default(uuid())
   email     String
-  code      String   // Hashed
+  code      String // Hashed
   type      OtpType
   expiresAt DateTime
   isUsed    Boolean  @default(false)
   createdAt DateTime @default(now())
-  
+
   @@map("otp")
 }

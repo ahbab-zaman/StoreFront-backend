@@ -1,0 +1,154 @@
+// Brands
+model Brand {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  slug        String  @unique
+  logo        String?
+  description String?
+  isActive    Boolean @default(true)
+
+  products Product[]
+
+  @@map("brands")
+}
+
+// Categories (Enterprise Architecture)
+model Category {
+  id     String         @id @default(uuid())
+  name   String
+  slug   String         @unique
+  icon   String?
+  status CategoryStatus @default(PENDING)
+
+  createdBy String
+  creator   User   @relation(fields: [createdBy], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  products   Product[]
+  attributes Attribute[]
+
+  @@index([status])
+  @@index([deletedAt])
+  @@map("categories")
+}
+
+// Global Attributes Engine (e.g. "Color", "Size")
+model Attribute {
+  id   String        @id @default(uuid())
+  name String // e.g., "Color"
+  type AttributeType @default(TEXT)
+
+  categoryId String? // Optional: Tie this attribute only to a specific category
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  values AttributeValue[]
+
+  @@map("attributes")
+}
+
+model AttributeValue {
+  id          String    @id @default(uuid())
+  attributeId String
+  attribute   Attribute @relation(fields: [attributeId], references: [id])
+  value       String // e.g., "Red", "128GB"
+  meta        String? // Hex code for colors (e.g., "#FF0000")
+
+  variations ProductVariationAttribute[]
+
+  @@map("attribute_values")
+}
+
+// Product Container (Parent)
+model Product {
+  id         String  @id @default(uuid())
+  storeId    String
+  categoryId String
+  brandId    String?
+
+  // Relations
+  store    Store    @relation(fields: [storeId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+  brand    Brand?   @relation(fields: [brandId], references: [id])
+
+  name        String
+  slug        String   @unique
+  shortDesc   String?
+  description String // HTML/Markdown
+  mainImage   String
+  images      String[] // Generic Array of image URLs
+  video       String?
+
+  status     ProductStatus @default(DRAFT)
+  isFeatured Boolean       @default(false)
+
+  // Review caching
+  avgRating    Float @default(0.0)
+  totalReviews Int   @default(0)
+
+  // SEO
+  metaTitle String?
+  metaDesc  String?
+  tags      String[]
+
+  variations ProductVariation[]
+  specs      ProductSpecification[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft Delete
+
+  @@map("products")
+}
+
+// Technical Data Sheets
+model ProductSpecification {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  key   String // e.g., "Processor"
+  value String // e.g., "Intel Core i7 13th Gen"
+
+  @@map("product_specifications")
+}
+
+// Physical Sellable Items (SKUs)
+model ProductVariation {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  sku String @unique
+
+  // Pricing
+  price         Float
+  discountPrice Float?
+
+  // Inventory
+  stock     Int     @default(0)
+  isDigital Boolean @default(false)
+
+  // Specifics
+  image      String?
+  weight     Float? // kg
+  dimensions String? // L x W x H
+
+  attributes ProductVariationAttribute[]
+
+  @@map("product_variations")
+}
+
+// Variation to specific trait linker
+model ProductVariationAttribute {
+  variationId      String
+  attributeValueId String
+
+  variation      ProductVariation @relation(fields: [variationId], references: [id], onDelete: Cascade)
+  attributeValue AttributeValue   @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+
+  @@id([variationId, attributeValueId])
+  @@map("product_variation_attributes")
+}

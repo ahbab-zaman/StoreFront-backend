@@ -25,3 +25,24 @@ enum StoreStatus {
   SUSPENDED
   REJECTED
 }
+
+// Category Status Enum
+enum CategoryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Product Status Enum
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// Attribute Type Enum
+enum AttributeType {
+  TEXT
+  COLOR_SWATCH
+  DROPDOWN
+}
