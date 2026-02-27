@@ -36,6 +36,7 @@ enum CategoryStatus {
 // Product Status Enum
 enum ProductStatus {
   DRAFT
+  PENDING
   PUBLISHED
   ARCHIVED
 }

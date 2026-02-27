@@ -3,6 +3,7 @@ import { healthRoutes } from "../modules/health/health.route";
 import authRoutes from "../modules/auth/auth.routes";
 import storeRoutes from "../modules/store/store.routes";
 import categoryRoutes from "../modules/category/category.routes";
+import productRoutes from "../modules/product/product.routes";
 
 const router = Router();
 
@@ -13,6 +14,7 @@ v1.use("/health", healthRoutes);
 v1.use("/auth", authRoutes);
 v1.use("/stores", storeRoutes);
 v1.use("/categories", categoryRoutes);
+v1.use("/products", productRoutes);
 
 router.use("/v1", v1);
 
