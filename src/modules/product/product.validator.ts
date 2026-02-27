@@ -1,5 +1,18 @@
 import { z } from "zod";
 
+// Helper: form-data sends arrays as JSON strings, so we parse them
+const jsonStringToArray = z.preprocess((val) => {
+  if (typeof val === "string") {
+    try {
+      const parsed = JSON.parse(val);
+      return Array.isArray(parsed) ? parsed : [val];
+    } catch {
+      return [val]; // single value → wrap in array
+    }
+  }
+  return val;
+}, z.array(z.string()).optional());
+
 // ── Product ──────────────────────────────────────────────────────────────────
 
 export const createProductSchema = z.object({
@@ -10,11 +23,11 @@ export const createProductSchema = z.object({
   brandId: z.string().uuid("Invalid brand ID").optional(),
   storeId: z.string().uuid("Invalid store ID"),
   mainImage: z.string().optional(), // Set by controller
-  images: z.array(z.string()).optional(),
+  images: jsonStringToArray,
   video: z.string().url().optional(),
   metaTitle: z.string().max(70).optional(),
   metaDesc: z.string().max(160).optional(),
-  tags: z.array(z.string()).optional(),
+  tags: jsonStringToArray,
 });
 
 export const updateProductSchema = z.object({
@@ -24,11 +37,11 @@ export const updateProductSchema = z.object({
   categoryId: z.string().uuid().optional(),
   brandId: z.string().uuid().optional(),
   mainImage: z.string().optional(),
-  images: z.array(z.string()).optional(),
+  images: jsonStringToArray,
   video: z.string().url().optional(),
   metaTitle: z.string().max(70).optional(),
   metaDesc: z.string().max(160).optional(),
-  tags: z.array(z.string()).optional(),
+  tags: jsonStringToArray,
 });
 
 // ── Variation ────────────────────────────────────────────────────────────────
@@ -42,7 +55,16 @@ export const createVariationSchema = z.object({
   image: z.string().optional(),
   weight: z.coerce.number().positive().optional(),
   dimensions: z.string().optional(),
-  attributeValueIds: z.array(z.string().uuid()).optional(),
+  attributeValueIds: z.preprocess((val) => {
+    if (typeof val === "string") {
+      try {
+        return JSON.parse(val);
+      } catch {
+        return [val];
+      }
+    }
+    return val;
+  }, z.array(z.string().uuid()).optional()),
 });
 
 export const updateVariationSchema = z.object({
