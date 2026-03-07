@@ -24,8 +24,9 @@ model User {
   // Relations
   sessions   Session[]
   accounts   Account[] // Kept for flexibility/Better Auth default
-  stores     Store[] // A seller can have multiple stores
+  stores     Store[]    // A seller can have multiple stores
   categories Category[]
+  cart       Cart?      // One active cart per customer
 
   @@map("user")
 }

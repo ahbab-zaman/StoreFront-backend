@@ -142,6 +142,7 @@ model ProductVariation {
   dimensions String? // L x W x H
 
   attributes ProductVariationAttribute[]
+  cartItems  CartItem[]
 
   @@map("product_variations")
 }

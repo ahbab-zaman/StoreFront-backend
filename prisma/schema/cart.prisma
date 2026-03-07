@@ -1,0 +1,42 @@
+// ─── Cart (one active cart per customer) ────────────────────────────────────
+model Cart {
+  id     String @id @default(uuid())
+  userId String @unique // enforces one-cart-per-user at DB level
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Single-store constraint — once a store is set, all items must belong to it.
+  // Cleared when cart is emptied and a new store is chosen.
+  storeId String?
+  store   Store?  @relation(fields: [storeId], references: [id], onDelete: SetNull)
+
+  items CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeId])
+  @@map("carts")
+}
+
+// ─── Cart Item (one row per SKU in the cart) ──────────────────────────────────
+model CartItem {
+  id     String @id @default(uuid())
+  cartId String
+  cart   Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  variationId String
+  variation   ProductVariation @relation(fields: [variationId], references: [id], onDelete: Cascade)
+
+  quantity Int @default(1)
+
+  // Price snapshot at time of add — used to detect price changes later
+  priceAtAdd Float
+
+  addedAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Prevent duplicate rows — same SKU in the same cart = update quantity only
+  @@unique([cartId, variationId])
+  @@index([cartId])
+  @@map("cart_items")
+}

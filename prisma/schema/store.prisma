@@ -11,6 +11,7 @@ model Store {
   sellerId String
   seller   User      @relation(fields: [sellerId], references: [id])
   products Product[]
+  carts    Cart[]    // Carts currently scoped to this store
 
   // Status & Visibility
   status StoreStatus @default(PENDING)
